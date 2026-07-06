@@ -1,0 +1,172 @@
+/* ── Reset & iframe base ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+/* ── Root widget ── */
+.hw-widget {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.9);
+  user-select: none;
+}
+
+/* ── Collapsed view ── */
+.hw-collapsed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.hw-expanded {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 32px;
+  width: 100%;
+}
+
+/* Show correct view based on state */
+.hw-widget:not(.is-expanded) .hw-collapsed {
+  display: flex;
+}
+
+.hw-widget.is-expanded .hw-collapsed {
+  display: none;
+}
+
+.hw-widget.is-expanded .hw-expanded {
+  display: flex;
+}
+
+/* ── Badge (collapsed count) ── */
+.hw-badge {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+  font-variant-numeric: tabular-nums;
+}
+
+.hw-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Expanded count display ── */
+.hw-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.hw-count {
+  font-size: 80px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -2px;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Controls ── */
+.hw-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.hw-btn {
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.hw-btn-primary {
+  width: 56px;
+  height: 56px;
+  font-size: 28px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+}
+
+.hw-btn-primary:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+.hw-btn-primary:active {
+  transform: scale(0.97);
+}
+
+.hw-btn-secondary {
+  width: 56px;
+  height: 56px;
+  font-size: 28px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hw-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.hw-btn-secondary:active {
+  transform: scale(0.97);
+}
+
+.hw-btn-reset {
+  padding: 8px 20px;
+  font-size: 12px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  letter-spacing: 0.5px;
+}
+
+.hw-btn-reset:hover {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+}

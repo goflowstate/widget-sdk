@@ -1,0 +1,40 @@
+{
+  "name": "@goflowstate/widget-sdk",
+  "version": "0.1.1",
+  "description": "SDK for building Flowstate Canvas widgets",
+  "type": "module",
+  "main": "./dist/canvas-widget-sdk.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/canvas-widget-sdk.js"
+    }
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "node build.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "jsdom": "^28.1.0",
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/starteryllp/goflowstate-sdk.git"
+  },
+  "license": "MIT"
+}

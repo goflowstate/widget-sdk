@@ -1,0 +1,17 @@
+{
+  "manifestVersion": "1",
+  "id": "com.flowstate.pomodoro",
+  "version": "1.0.0",
+  "name": "Pomodoro Timer",
+  "description": "Focus timer with work/break sessions",
+  "permissions": ["events.subscribe", "events.emit"],
+  "dimensions": {
+    "collapsed": { "width": 280, "height": 280 },
+    "expanded": { "width": 600, "height": 500, "resizable": false }
+  },
+  "events": {
+    "subscribes": ["space:entered", "space:left", "call:joined", "call:left"],
+    "emits": ["pomodoro:session-started", "pomodoro:session-completed", "pomodoro:break-started"]
+  },
+  "category": "productivity"
+}

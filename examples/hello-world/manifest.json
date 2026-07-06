@@ -1,0 +1,13 @@
+{
+  "manifestVersion": "1",
+  "id": "com.example.hello-world",
+  "version": "1.0.0",
+  "name": "Hello World",
+  "description": "A minimal Flowstate widget demonstrating SDK basics",
+  "permissions": ["storage.local"],
+  "dimensions": {
+    "collapsed": { "width": 280, "height": 160 },
+    "expanded": { "width": 500, "height": 400, "resizable": true }
+  },
+  "category": "utilities"
+}
