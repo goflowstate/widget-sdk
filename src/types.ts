@@ -103,6 +103,9 @@ export interface CanvasWidgetSDK {
   // Phase 2
   /** The authenticated user context, or null when user data access has not been granted. */
   readonly user: UserContext | null;
+  /** Namespace (office) context — id and owner-inclusive member count — or
+   *  null on a personal canvas. What the `canvas.context` permission grants. */
+  readonly namespace: { officeId: string; memberCount: number } | null;
   /** Request user consent for a named data scope; resolves with the consent decision. */
   requestConsent(scope: string, reason: string): Promise<ConsentResult>;
   /** Return the cached JWT for authenticating requests to external APIs. Pass forceRefresh=true to bypass the cache. */
@@ -142,6 +145,9 @@ export interface InitPayload {
   serviceUrl: string | null;
   user: UserContext | null;
   settings: Record<string, unknown> | null;
+  /** Namespace (office) context — null on a personal canvas. What the
+   *  `canvas.context` permission actually grants. */
+  namespace?: { officeId: string; memberCount: number } | null;
 }
 
 /** Payload delivered when the widget's display state changes. */

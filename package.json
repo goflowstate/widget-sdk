@@ -1,6 +1,6 @@
 {
   "name": "@goflowstate/widget-sdk",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "SDK for building Flowstate Canvas widgets",
   "type": "module",
   "main": "./dist/canvas-widget-sdk.js",

@@ -28,10 +28,28 @@ import type {
   DbListOptions,
 } from './types';
 import { createServiceClient } from './service';
+import { initSession } from './session';
 
 const PROTOCOL = 'canvas-widget-v1';
 const DEV_MODE_TOKEN = 'dev-mode-skip';
 const INIT_TIMEOUT_MS = 5000;
+
+// crypto.randomUUID only exists in SECURE contexts (HTTPS or localhost). When
+// a widget iframe is served over plain http on a LAN IP (e.g. dev-on-phone at
+// http://10.0.0.x), it's undefined and init() throws — the widget never
+// hands shakes and the host times it out ("failed to load"). Fall back to a
+// getRandomValues-based v4 UUID (also secure-context-independent).
+function safeRandomUUID(): string {
+  const c = globalThis.crypto;
+  if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+  const b = new Uint8Array(16);
+  if (c && typeof c.getRandomValues === 'function') c.getRandomValues(b);
+  else for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0'));
+  return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`;
+}
 
 interface CanvasMessage {
   protocol: string;
@@ -91,6 +109,7 @@ export class CanvasWidgetSDKImpl implements CanvasWidgetSDK {
   private _state: WidgetDisplayState;
   private _hmacSecret: string | null;
   private _user: UserContext | null;
+  private _namespace: { officeId: string; memberCount: number } | null;
   private _widgetApiUrl: string | null;
   private _widgetApiToken: string | null;
   private _installationId: string;
@@ -117,6 +136,7 @@ export class CanvasWidgetSDKImpl implements CanvasWidgetSDK {
     this._state = init.state;
     this._hmacSecret = init.hmacSecret;
     this._user = init.user;
+    this._namespace = init.namespace ?? null;
     this._widgetApiUrl = init.widgetApiUrl;
     this._widgetApiToken = init.widgetApiToken ?? null;
     this._installationId = init.installationId;
@@ -147,6 +167,12 @@ export class CanvasWidgetSDKImpl implements CanvasWidgetSDK {
   /** The authenticated user context, or null when user data access has not been granted. */
   get user(): UserContext | null {
     return this._user;
+  }
+
+  /** Namespace (office) context — id and owner-inclusive member count — or
+   *  null on a personal canvas. What the `canvas.context` permission grants. */
+  get namespace(): { officeId: string; memberCount: number } | null {
+    return this._namespace;
   }
 
   /** Subscribe to display state changes; returns an unsubscribe function. */
@@ -440,7 +466,7 @@ export class CanvasWidgetSDKImpl implements CanvasWidgetSDK {
     type: string,
     payload: Record<string, unknown>
   ): Promise<CanvasMessage> {
-    const nonce = crypto.randomUUID();
+    const nonce = safeRandomUUID();
     const timestamp = Date.now();
 
     let token: string;
@@ -488,6 +514,14 @@ export class CanvasWidgetSDKImpl implements CanvasWidgetSDK {
  */
 export const CanvasWidget = {
   /**
+   * Initialize a group-session client for widgets hosted on the /w/[slug]
+   * session page (ticket handshake + session REST rails). Returns null when
+   * the launch context carries no session params — see `initSession` in
+   * ./session for details and `createMockSession` for standalone dev.
+   */
+  initSession,
+
+  /**
    * Initialize the SDK and establish communication with the canvas host.
    *
    * Sends a READY message to the host and waits for an INIT response.
@@ -521,7 +555,7 @@ export const CanvasWidget = {
         protocol: PROTOCOL,
         type: 'READY',
         widgetId: '', // Not yet known — host identifies us by iframe source
-        nonce: crypto.randomUUID(),
+        nonce: safeRandomUUID(),
         timestamp: Date.now(),
         token: DEV_MODE_TOKEN, // READY is always allowed, token doesn't matter
         payload: { manifestVersion: '1' },
