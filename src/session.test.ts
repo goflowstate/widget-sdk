@@ -21,6 +21,7 @@ describe('readSessionLaunchParams', () => {
       ticket: null,
       apiBase: 'http://gw.local:13002',
       webBase: 'http://web.local:14321',
+      mobileBase: null,
     });
   });
 
@@ -29,6 +30,14 @@ describe('readSessionLaunchParams', () => {
     const p = readSessionLaunchParams();
     expect(p?.slug).toBe('xyz');
     expect(p?.ticket).toBe('t1');
+  });
+
+  it('reads the optional mobile param (trailing slash stripped), null when absent', () => {
+    window.history.replaceState(null, '', '/?slug=abc&mobile=https://m.flowstate.local/');
+    expect(readSessionLaunchParams()?.mobileBase).toBe('https://m.flowstate.local');
+
+    window.history.replaceState(null, '', '/?slug=abc');
+    expect(readSessionLaunchParams()?.mobileBase).toBeNull();
   });
 });
 

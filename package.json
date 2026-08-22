@@ -1,6 +1,6 @@
 {
   "name": "@goflowstate/widget-sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "SDK for building Flowstate Canvas widgets",
   "type": "module",
   "main": "./dist/canvas-widget-sdk.js",
@@ -34,7 +34,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/starteryllp/goflowstate-sdk.git"
+    "url": "https://github.com/goflowstate/goflowstate-sdk.git"
   },
   "license": "MIT"
 }

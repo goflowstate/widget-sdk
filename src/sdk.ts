@@ -22,6 +22,10 @@ import type {
   StorageAPI,
   SettingsAPI,
   WidgetServiceClient,
+  AiAPI,
+  AiCallOptions,
+  AiCompleteResult,
+  AiStreamEvent,
   DbAPI,
   DbCollection,
   DbRecord,
@@ -313,6 +317,55 @@ export class CanvasWidgetSDKImpl implements CanvasWidgetSDK {
     };
   }
 
+  /** Platform LLM access (widget.* aliases only). Requests ride the same
+   *  widget-gateway auth as db/storage; the platform meters every call and
+   *  attributes it to this widget's publishing org. */
+  get ai(): AiAPI {
+    const complete = (opts: AiCallOptions): Promise<AiCompleteResult> =>
+      this.widgetApiRequest('/widget-api/ai/complete', 'POST', opts) as Promise<AiCompleteResult>;
+    const streamRequest = (opts: AiCallOptions): Promise<Response> => this.widgetApiStream(opts);
+    return {
+      complete,
+      // Async generator over the gateway's SSE frames. Ends on [DONE] or
+      // stream end; returning early (break) cancels the fetch body, which
+      // the gateway sees as a disconnect and aborts the upstream call, so
+      // an abandoned stream stops generating and billing.
+      async *stream(opts: AiCallOptions): AsyncGenerator<AiStreamEvent> {
+        const response = await streamRequest(opts);
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error('ai.stream: response has no body');
+        const decoder = new TextDecoder();
+        let buffer = '';
+        try {
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const frames = buffer.split('\n\n');
+            buffer = frames.pop() ?? '';
+            for (const frame of frames) {
+              const dataLine = frame.split('\n').find((l) => l.startsWith('data:'));
+              if (!dataLine) continue;
+              const payload = dataLine.slice(5).trim();
+              if (!payload || payload === '[DONE]') continue;
+              let parsed: AiStreamEvent;
+              try {
+                parsed = JSON.parse(payload) as AiStreamEvent;
+              } catch {
+                continue;
+              }
+              yield parsed;
+            }
+          }
+        } finally {
+          // Break/return path: releases the connection so the gateway's
+          // req.on('close') fires and the upstream call aborts.
+          await reader.cancel().catch(() => {});
+        }
+      },
+    };
+  }
+
   /** Widget configuration settings persisted by the canvas host. */
   get settings(): SettingsAPI {
     return {
@@ -340,6 +393,29 @@ export class CanvasWidgetSDKImpl implements CanvasWidgetSDK {
   }
 
   // ── Private ─────────────────────────────────────────────────
+
+  /** Raw streaming POST against the widget gateway — same auth as
+   *  widgetApiRequest, but returns the Response for SSE consumption
+   *  instead of parsing a JSON envelope. */
+  private async widgetApiStream(body: unknown): Promise<Response> {
+    if (!this._widgetApiUrl) {
+      throw new Error('Widget API Gateway URL not available');
+    }
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (this._widgetApiToken) {
+      headers['Authorization'] = `Bearer ${this._widgetApiToken}`;
+    }
+    const response = await fetch(`${this._widgetApiUrl}/widget-api/ai/stream`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error((err as Record<string, string>).message ?? 'ai.stream request failed');
+    }
+    return response;
+  }
 
   private async widgetApiRequest(path: string, method: string, body?: unknown): Promise<unknown> {
     if (!this._widgetApiUrl) {

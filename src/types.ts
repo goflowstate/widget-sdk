@@ -54,6 +54,51 @@ export interface DbAPI {
   collection(name: string): DbCollection;
 }
 
+/** One conversation turn for the AI API. */
+export interface AiMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AiCallOptions {
+  /** A `widget.*` model alias (e.g. 'widget.haiku', 'widget.gpt-mini') —
+   *  the gateway rejects anything else. Never a raw provider model id. */
+  alias: string;
+  system?: string;
+  messages: AiMessage[];
+  /** Clamped server-side (floor 256 / cap 4096, default 1024). The floor
+   *  exists because gpt-5-family aliases are reasoning models: a small
+   *  budget is consumed entirely by invisible reasoning and returns empty
+   *  text with stopReason 'length'. */
+  maxTokens?: number;
+}
+
+export interface AiCompleteResult {
+  text: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+/** Streaming events, mirroring the platform's LLM port vocabulary. */
+export type AiStreamEvent =
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: unknown }
+  | {
+      type: 'done';
+      inputTokens: number;
+      outputTokens: number;
+      stopReason: string | null;
+      contentBlocks: unknown[];
+    }
+  | { type: 'error'; message: string };
+
+/** Platform LLM access. Widgets never see provider keys; calls are metered
+ *  and attributed to the widget's publishing org. */
+export interface AiAPI {
+  complete(opts: AiCallOptions): Promise<AiCompleteResult>;
+  stream(opts: AiCallOptions): AsyncGenerator<AiStreamEvent>;
+}
+
 /** Persistent key-value storage API scoped to this widget installation. */
 export interface StorageAPI {
   /** Retrieve a value by key; resolves with undefined if the key does not exist. */
@@ -114,6 +159,8 @@ export interface CanvasWidgetSDK {
   storage: StorageAPI;
   /** Ad-hoc collections/records backend scoped to the canvas/room. */
   db: DbAPI;
+  /** Platform LLM access (widget.* aliases only) — completions and streaming. */
+  ai: AiAPI;
   /** Widget configuration settings persisted by the canvas host. */
   settings: SettingsAPI;
   /** Display a toast notification in the canvas host UI. */

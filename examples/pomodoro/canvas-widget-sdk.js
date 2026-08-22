@@ -1,5 +1,5 @@
 // @goflowstate/widget-sdk v0.1.0
-// https://github.com/starteryllp/goflowstate-sdk
+// https://github.com/goflowstate/goflowstate-sdk
 
 'use strict';
 var CanvasWidgetSDK = (() => {

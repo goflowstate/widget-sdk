@@ -115,6 +115,11 @@ export interface SessionClient<
   readonly slug: string;
   /** Base URL of the web app (for reveal links and parent navigation). */
   readonly webBase: string;
+  /** Base URL of the mobile PWA, when the host provided one via the optional
+   *  `mobile` iframe param. Participant-facing join links (e.g. a projected
+   *  QR) should prefer it and fall back to `webBase` when absent. Optional so
+   *  hand-rolled SessionClient implementations keep compiling. */
+  readonly mobileBase?: string | null;
 
   /** Enter the session: the first identified enter creates the group. */
   join(): Promise<SessionStateView<TSetup, TContribution, TDoc>>;
@@ -158,6 +163,11 @@ export interface SessionLaunchParams {
   ticket: string | null;
   apiBase: string;
   webBase: string;
+  /** Base URL of the mobile PWA (the optional `mobile` iframe param). Null
+   *  when the host didn't send one — legacy hosts never do — so consumers
+   *  fall back to `webBase` links. Optional so hand-built params keep
+   *  compiling. */
+  mobileBase?: string | null;
 }
 
 export function readSessionLaunchParams(): SessionLaunchParams | null {
@@ -167,11 +177,16 @@ export function readSessionLaunchParams(): SessionLaunchParams | null {
   // so hosts don't have to change. `slug` is accepted as the modern alias.
   const slug = q.get('slug') ?? q.get('tripId') ?? '';
   if (!slug) return null;
+  // `mobile` is optional and has NO default: absent means the host predates
+  // the PWA doors (or has none configured) and consumers must keep minting
+  // legacy webBase links.
+  const mobile = q.get('mobile');
   return {
     slug,
     ticket: q.get('ticket'),
     apiBase: (q.get('api') ?? 'http://localhost:13002').replace(/\/$/, ''),
     webBase: (q.get('web') ?? 'http://localhost:14321').replace(/\/$/, ''),
+    mobileBase: mobile ? mobile.replace(/\/$/, '') : null,
   };
 }
 
@@ -286,6 +301,7 @@ class HttpSessionClient<TSetup, TContribution, TDoc>
 {
   readonly slug: string;
   readonly webBase: string;
+  readonly mobileBase: string | null;
   private readonly apiBase: string;
   private readonly tokenPromise: Promise<string>;
   private readonly opener: ExternalOpener;
@@ -293,6 +309,7 @@ class HttpSessionClient<TSetup, TContribution, TDoc>
   constructor(params: SessionLaunchParams, opener?: ExternalOpener) {
     this.slug = params.slug;
     this.webBase = params.webBase;
+    this.mobileBase = params.mobileBase ?? null;
     this.apiBase = params.apiBase;
     this.opener = opener ?? parentOpener(params.webBase);
     // Redeem eagerly: the ticket is single-use + short-lived; trade it for a

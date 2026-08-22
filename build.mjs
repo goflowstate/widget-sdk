@@ -16,7 +16,7 @@ await build({
   minify: false,
   sourcemap: true,
   banner: {
-    js: `// @goflowstate/widget-sdk v${pkg.version}\n// https://github.com/starteryllp/goflowstate-sdk\n`,
+    js: `// @goflowstate/widget-sdk v${pkg.version}\n// https://github.com/goflowstate/goflowstate-sdk\n`,
   },
   footer: {
     js: `\n// Expose CanvasWidget on the global scope\nif (typeof window !== "undefined") { window.CanvasWidget = CanvasWidgetSDK.CanvasWidget; }`,
@@ -36,7 +36,7 @@ await build({
   minify: false,
   sourcemap: true,
   banner: {
-    js: `// @goflowstate/widget-sdk v${pkg.version}\n// https://github.com/starteryllp/goflowstate-sdk\n`,
+    js: `// @goflowstate/widget-sdk v${pkg.version}\n// https://github.com/goflowstate/goflowstate-sdk\n`,
   },
 });
 

@@ -77,6 +77,49 @@ const count = await widget.storage.get('count');
 await widget.storage.delete('count');
 ```
 
+## AI Completions
+
+Call the platform's models without holding any provider key. Every call is
+metered and attributed to your publishing org.
+
+```ts
+const widget = await CanvasWidget.init();
+
+// One-shot completion
+const res = await widget.ai.complete({
+  alias: 'widget.gpt-mini', // widget.* aliases only — never raw model ids
+  system: 'You summarise kanban boards in one sentence.',
+  messages: [{ role: 'user', content: boardAsText }],
+});
+console.log(res.text, res.inputTokens, res.outputTokens);
+
+// Streaming
+for await (const ev of widget.ai.stream({
+  alias: 'widget.haiku',
+  messages: [{ role: 'user', content: 'Brainstorm three icebreakers.' }],
+})) {
+  if (ev.type === 'text') appendToUi(ev.text);
+  if (ev.type === 'done') console.log('tokens:', ev.inputTokens, ev.outputTokens);
+  if (ev.type === 'error') showError(ev.message);
+}
+```
+
+Available aliases: `widget.gpt` (OpenAI, strongest), `widget.gpt-mini`
+(OpenAI, fast), `widget.haiku` (Anthropic, fast), `widget.sonnet`
+(Anthropic, strongest). Aliases are platform-managed; the model behind one
+can improve without a code change on your side.
+
+Notes:
+
+- `maxTokens` is clamped server-side to [256, 4096] (default 1024). The
+  floor exists because the OpenAI aliases are reasoning models: a tiny
+  budget gets consumed entirely by invisible reasoning and returns empty
+  text with `stopReason: 'length'`. If you see empty text, raise the budget.
+- Breaking out of a `stream()` loop cancels the upstream call, so you are
+  not billed for text you stopped reading.
+- Budget errors surface with messages starting `usage limit reached` —
+  catch them to show your own copy.
+
 ## User Context and Consent
 
 ```ts
