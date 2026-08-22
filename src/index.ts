@@ -11,7 +11,7 @@ export type {
   DbListOptions,
 } from './types';
 export type { CreateServiceClientOptions } from './service';
-export { initSession, createMockSession, readSessionLaunchParams } from './session';
+export { initSession, createMockSession, hostOriginOf, readSessionLaunchParams } from './session';
 export type {
   SessionClient,
   SessionStateView,

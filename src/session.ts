@@ -168,6 +168,14 @@ export interface SessionLaunchParams {
    *  fall back to `webBase` links. Optional so hand-built params keep
    *  compiling. */
   mobileBase?: string | null;
+  /** Origin of the page that FRAMES the widget — the `host` iframe param.
+   *  The ready/init ticket handshake and `flowstate:navigate` are addressed
+   *  to this origin (0.2.2). Defaults to `webBase` when absent, which is
+   *  what every pre-0.2.2 host is: the web /w page framing the widget. The
+   *  mobile PWA frames the widget itself (its native lobby) and names itself
+   *  here — without it the browser drops every postMessage between them
+   *  (target-origin mismatch) and the widget never boots. */
+  hostBase?: string;
 }
 
 export function readSessionLaunchParams(): SessionLaunchParams | null {
@@ -181,27 +189,35 @@ export function readSessionLaunchParams(): SessionLaunchParams | null {
   // the PWA doors (or has none configured) and consumers must keep minting
   // legacy webBase links.
   const mobile = q.get('mobile');
+  const webBase = (q.get('web') ?? 'http://localhost:14321').replace(/\/$/, '');
+  const host = q.get('host');
   return {
     slug,
     ticket: q.get('ticket'),
     apiBase: (q.get('api') ?? 'http://localhost:13002').replace(/\/$/, ''),
-    webBase: (q.get('web') ?? 'http://localhost:14321').replace(/\/$/, ''),
+    webBase,
     mobileBase: mobile ? mobile.replace(/\/$/, '') : null,
+    hostBase: host ? host.replace(/\/$/, '') : webBase,
   };
 }
+
+/** The origin the handshake is addressed to: the framing page. */
+export const hostOriginOf = (params: Pick<SessionLaunchParams, 'webBase' | 'hostBase'>): string =>
+  new URL(params.hostBase ?? params.webBase).origin;
 
 const SESSION_INIT_TIMEOUT_MS = 10_000;
 const DEFAULT_POLL_INTERVAL_MS = 4_000;
 
-/** Announce readiness to the parent /w page and wait for it to hand over the
- *  single-use session ticket. */
-function awaitInitTicket(webBase: string): Promise<string> {
+/** Announce readiness to the parent (host) page and wait for it to hand over
+ *  the single-use session ticket. `hostOrigin` is the framing page's origin
+ *  (`hostOriginOf`) — the web /w page or the mobile PWA's native lobby. */
+function awaitInitTicket(hostOrigin: string): Promise<string> {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || window.parent === window) {
       reject(new Error('no parent page to receive a ticket from'));
       return;
     }
-    const webOrigin = new URL(webBase).origin;
+    const webOrigin = hostOrigin;
     const timer = setTimeout(() => {
       window.removeEventListener('message', onMessage);
       reject(new Error('timed out waiting for the session handoff'));
@@ -285,11 +301,12 @@ function toStateView<TSetup, TContribution, TDoc>(
 
 type ExternalOpener = (url: string) => void;
 
-const parentOpener = (webBase: string): ExternalOpener => {
+const parentOpener = (hostOrigin: string): ExternalOpener => {
   return (url) => {
     if (typeof window !== 'undefined' && window.parent !== window) {
-      // Ask the /w page (same session cookie) to navigate itself.
-      window.parent.postMessage({ type: 'flowstate:navigate', url }, webBase);
+      // Ask the host page to navigate itself (the web /w page shares the
+      // session cookie; the PWA lobby routes reveals natively).
+      window.parent.postMessage({ type: 'flowstate:navigate', url }, hostOrigin);
       return;
     }
     if (typeof window !== 'undefined') window.open(url, '_blank', 'noopener');
@@ -311,7 +328,7 @@ class HttpSessionClient<TSetup, TContribution, TDoc>
     this.webBase = params.webBase;
     this.mobileBase = params.mobileBase ?? null;
     this.apiBase = params.apiBase;
-    this.opener = opener ?? parentOpener(params.webBase);
+    this.opener = opener ?? parentOpener(hostOriginOf(params));
     // Redeem eagerly: the ticket is single-use + short-lived; trade it for a
     // session token before the user spends time in the widget.
     this.tokenPromise = this.acquireTicket(params).then((t) => this.redeem(t));
@@ -319,7 +336,7 @@ class HttpSessionClient<TSetup, TContribution, TDoc>
 
   private async acquireTicket(params: SessionLaunchParams): Promise<string> {
     if (params.ticket) return params.ticket; // dev fallback
-    return awaitInitTicket(params.webBase);
+    return awaitInitTicket(hostOriginOf(params));
   }
 
   private async redeem(ticket: string): Promise<string> {

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 
-import { createMockSession, initSession, readSessionLaunchParams } from './session';
+import { createMockSession, hostOriginOf, initSession, readSessionLaunchParams } from './session';
 
 describe('readSessionLaunchParams', () => {
   it('returns null without a slug', () => {
@@ -22,7 +22,28 @@ describe('readSessionLaunchParams', () => {
       apiBase: 'http://gw.local:13002',
       webBase: 'http://web.local:14321',
       mobileBase: null,
+      hostBase: 'http://web.local:14321',
     });
+  });
+
+  it('reads the optional host param (the framing page) and defaults it to the web base', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/?slug=abc&web=http://web.local:14321&host=https://m.flowstate.local/'
+    );
+    const p = readSessionLaunchParams();
+    expect(p?.hostBase).toBe('https://m.flowstate.local');
+    expect(hostOriginOf(p!)).toBe('https://m.flowstate.local');
+
+    window.history.replaceState(null, '', '/?slug=abc&web=http://web.local:14321/');
+    const q = readSessionLaunchParams();
+    expect(q?.hostBase).toBe('http://web.local:14321');
+    expect(hostOriginOf(q!)).toBe('http://web.local:14321');
+    // Hand-built params without hostBase (pre-0.2.2 callers) resolve to the web origin.
+    expect(hostOriginOf({ webBase: 'https://app.flowstate.local/' })).toBe(
+      'https://app.flowstate.local'
+    );
   });
 
   it('prefers the modern slug alias and carries the dev ticket', () => {
