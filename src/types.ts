@@ -61,8 +61,18 @@ export interface AiMessage {
 }
 
 export interface AiCallOptions {
-  /** A `widget.*` model alias (e.g. 'widget.haiku', 'widget.gpt-mini') —
-   *  the gateway rejects anything else. Never a raw provider model id. */
+  /** Which model answers, in one of two forms:
+   *
+   *  - A `widget.*` alias (e.g. 'widget.haiku', 'widget.gpt-mini'): a
+   *    platform-managed pointer — the model behind it can improve without a
+   *    code change on your side.
+   *  - A direct ref `provider/model-id` (e.g. 'anthropic/claude-opus-4-8'):
+   *    an exact pin for repeatability, honored verbatim or refused, never
+   *    redirected. On platform billing only platform-priced models can be
+   *    pinned; with your org's own key (BYOK) you can pin any model your
+   *    configured provider serves.
+   *
+   *  Anything else is rejected by the gateway. */
   alias: string;
   system?: string;
   messages: AiMessage[];
