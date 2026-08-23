@@ -109,14 +109,13 @@ Available aliases: `widget.gpt` (OpenAI, strongest), `widget.gpt-mini`
 (Anthropic, strongest). Aliases are platform-managed; the model behind one
 can improve without a code change on your side.
 
-When a run must hit the exact same model every time (local development,
-evals, reproducing a bug), pass a direct ref instead of an alias:
+When a run must hit the exact same model every time (evals, regression
+tests, reproducing a bug), pass a direct ref instead of an alias:
 `provider/model-id`, e.g. `anthropic/claude-opus-4-8` or
 `anthropic/claude-opus-4-7`. A ref is honored verbatim or refused, never
 redirected. On platform billing only platform-priced models can be pinned;
 with your org's own key (BYOK) you can pin any model your configured
-provider serves, including your own local or self-hosted models behind an
-`openai-compatible` endpoint.
+provider serves.
 
 Notes:
 

@@ -67,10 +67,10 @@ export interface AiCallOptions {
    *    platform-managed pointer — the model behind it can improve without a
    *    code change on your side.
    *  - A direct ref `provider/model-id` (e.g. 'anthropic/claude-opus-4-8'):
-   *    an exact pin for repeatability, honored verbatim or refused, never
-   *    redirected. On platform billing only platform-priced models can be
-   *    pinned; with your org's own key (BYOK) you can pin any model your
-   *    configured provider serves.
+   *    an exact pin for repeatability (evals, regression tests), honored
+   *    verbatim or refused, never redirected. On platform billing only
+   *    platform-priced models can be pinned; with your org's own key (BYOK)
+   *    you can pin any model your configured provider serves.
    *
    *  Anything else is rejected by the gateway. */
   alias: string;
